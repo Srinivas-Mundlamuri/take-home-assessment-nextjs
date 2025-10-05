@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET() {
   try {
-    console.log('DATABASE_URL:', process.env.DATABASE_URL)
+    console.log('NEON_RED_DOG_URL:', process.env.NEON_RED_DOG_URL)
     console.log('NODE_ENV:', process.env.NODE_ENV)
     
     // Test basic connection
@@ -17,7 +17,7 @@ export async function GET() {
     return NextResponse.json({ 
       success: true, 
       userCount,
-      databaseUrl: process.env.DATABASE_URL?.substring(0, 30) + '...',
+      databaseUrl: process.env.NEON_RED_DOG_URL?.substring(0, 30) + '...',
       nodeEnv: process.env.NODE_ENV
     })
   } catch (error: any) {
@@ -26,7 +26,7 @@ export async function GET() {
       success: false, 
       error: error.message,
       code: error.code,
-      databaseUrl: process.env.DATABASE_URL?.substring(0, 30) + '...',
+      databaseUrl: process.env.NEON_RED_DOG_URL?.substring(0, 30) + '...',
       nodeEnv: process.env.NODE_ENV
     }, { status: 500 })
   }
