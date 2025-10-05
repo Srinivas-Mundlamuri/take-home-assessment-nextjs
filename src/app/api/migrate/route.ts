@@ -66,15 +66,29 @@ export async function POST() {
     
     console.log('✅ Database migration completed successfully')
     
-    // Test a simple query
+    // Test queries
     const userCount = await prisma.user.count()
     const projectCount = await prisma.project.count()
+    const whiteboardCount = await prisma.whiteboard.count()
+    const projectShareCount = await prisma.projectShare.count()
+    
+    // Get sample data
+    const users = await prisma.user.findMany({ take: 3 })
+    const projects = await prisma.project.findMany({ take: 3, include: { owner: true } })
     
     return NextResponse.json({ 
       success: true, 
       message: 'Database migration completed successfully',
-      userCount,
-      projectCount,
+      counts: {
+        users: userCount,
+        projects: projectCount,
+        whiteboards: whiteboardCount,
+        projectShares: projectShareCount
+      },
+      sampleData: {
+        users,
+        projects
+      },
       timestamp: new Date().toISOString()
     })
   } catch (error: any) {
