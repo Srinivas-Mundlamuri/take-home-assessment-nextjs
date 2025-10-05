@@ -9,52 +9,58 @@ export async function POST() {
     await prisma.$connect()
     console.log('✅ Database connection successful')
     
-    // Create users table if it doesn't exist
+    // Drop existing tables to recreate with correct schema
+    await prisma.$executeRaw`DROP TABLE IF EXISTS whiteboards CASCADE;`
+    await prisma.$executeRaw`DROP TABLE IF EXISTS project_shares CASCADE;`
+    await prisma.$executeRaw`DROP TABLE IF EXISTS projects CASCADE;`
+    await prisma.$executeRaw`DROP TABLE IF EXISTS users CASCADE;`
+    
+    // Create users table with correct field names
     await prisma.$executeRaw`
-      CREATE TABLE IF NOT EXISTS users (
+      CREATE TABLE users (
         id TEXT PRIMARY KEY,
         username TEXT UNIQUE NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `
     
-    // Create projects table if it doesn't exist
+    // Create projects table with correct field names
     await prisma.$executeRaw`
-      CREATE TABLE IF NOT EXISTS projects (
+      CREATE TABLE projects (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         description TEXT,
-        owner_id TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
+        "ownerId" TEXT NOT NULL,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY ("ownerId") REFERENCES users(id) ON DELETE CASCADE
       );
     `
     
-    // Create project_shares table if it doesn't exist
+    // Create project_shares table with correct field names
     await prisma.$executeRaw`
-      CREATE TABLE IF NOT EXISTS project_shares (
+      CREATE TABLE project_shares (
         id TEXT PRIMARY KEY,
-        project_id TEXT NOT NULL,
-        user_id TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-        UNIQUE(project_id, user_id)
+        "projectId" TEXT NOT NULL,
+        "userId" TEXT NOT NULL,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY ("projectId") REFERENCES projects(id) ON DELETE CASCADE,
+        FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE,
+        UNIQUE("projectId", "userId")
       );
     `
     
-    // Create whiteboards table if it doesn't exist
+    // Create whiteboards table with correct field names
     await prisma.$executeRaw`
-      CREATE TABLE IF NOT EXISTS whiteboards (
+      CREATE TABLE whiteboards (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         data JSONB,
-        project_id TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+        "projectId" TEXT NOT NULL,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY ("projectId") REFERENCES projects(id) ON DELETE CASCADE
       );
     `
     
