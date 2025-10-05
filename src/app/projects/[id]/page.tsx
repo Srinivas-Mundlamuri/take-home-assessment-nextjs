@@ -40,11 +40,15 @@ export default function ProjectPage() {
   const params = useParams()
 
   useEffect(() => {
-    checkSession()
     if (params.id) {
-      loadProject()
+      initializePage()
     }
   }, [params.id])
+
+  const initializePage = async () => {
+    await checkSession()
+    await loadProject()
+  }
 
   const checkSession = async () => {
     try {
@@ -53,29 +57,45 @@ export default function ProjectPage() {
       
       if (!data.user) {
         router.push('/login')
-        return
+        return false
       }
       
       setUser(data.user)
+      return true
     } catch (error) {
       console.error('Session check failed:', error)
       router.push('/login')
+      return false
     }
   }
 
   const loadProject = async () => {
     try {
-      const response = await fetch(`/api/projects/${params.id}`)
+      const response = await fetch(`/api/projects/${params.id}`, {
+        credentials: 'include', // Ensure cookies are sent
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
       const data = await response.json()
       
       if (response.ok) {
         setProject(data.project)
+        setError('')
       } else {
-        throw new Error(data.error)
+        if (response.status === 401) {
+          // Unauthorized - redirect to login
+          router.push('/login')
+          return
+        } else if (response.status === 404) {
+          setError('Project not found or you do not have access to it')
+        } else {
+          setError(data.error || 'Failed to load project')
+        }
       }
     } catch (error) {
       console.error('Failed to load project:', error)
-      setError('Failed to load project')
+      setError('Network error: Failed to load project')
     } finally {
       setLoading(false)
     }
@@ -182,15 +202,28 @@ export default function ProjectPage() {
     )
   }
 
-  if (!project) {
+  if (!loading && !project) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Project not found</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            {error || 'Project not found'}
+          </h2>
+          <p className="text-gray-600 mb-6">
+            {error ? 'There was an error loading the project.' : 'The project you are looking for does not exist or you do not have access to it.'}
+          </p>
           <Link href="/dashboard" className="text-blue-600 hover:text-blue-500">
             Back to Dashboard
           </Link>
         </div>
+      </div>
+    )
+  }
+
+  if (!project) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">Loading...</div>
       </div>
     )
   }

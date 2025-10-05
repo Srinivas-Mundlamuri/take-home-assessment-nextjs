@@ -7,7 +7,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("NEON_RED_DOG_URL")
+  url      = env("DATABASE_URL")
 }
 
 // User model for simplified authentication
