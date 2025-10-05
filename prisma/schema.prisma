@@ -1,0 +1,76 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model for simplified authentication
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Projects owned by this user
+  ownedProjects Project[] @relation("ProjectOwner")
+  
+  // Projects shared with this user
+  sharedProjects ProjectShare[]
+
+  @@map("users")
+}
+
+// Project model
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Owner of the project
+  ownerId String
+  owner   User   @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  // Users who have access to this project
+  sharedWith ProjectShare[]
+  
+  // TLDraw whiteboards in this project
+  whiteboards Whiteboard[]
+
+  @@map("projects")
+}
+
+// Many-to-many relationship for project sharing
+model ProjectShare {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@map("project_shares")
+}
+
+// TLDraw whiteboard model
+model Whiteboard {
+  id        String   @id @default(cuid())
+  name      String
+  projectId String
+  canvasData Json?   // Store TLDraw canvas state as JSON
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("whiteboards")
+}
