@@ -12,43 +12,65 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const user = await requireAuth()
     const { id } = await params
 
-    const project = await prisma.project.findFirst({
-      where: {
-        id,
-        OR: [
-          { ownerId: user.id },
-          {
-            sharedWith: {
-              some: { userId: user.id }
-            }
-          }
-        ]
-      },
-      include: {
-        owner: {
-          select: { id: true, username: true }
-        },
-        sharedWith: {
-          include: {
-            user: {
-              select: { id: true, username: true }
-            }
-          }
-        },
-        whiteboards: {
-          orderBy: { updatedAt: 'desc' }
-        }
-      }
+    // First check if project exists and get basic info
+    const project = await prisma.project.findUnique({
+      where: { id }
     })
 
     if (!project) {
-      return NextResponse.json(
-        { error: 'Project not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 })
     }
 
-    return NextResponse.json({ project })
+    // Check if user has access (either owner or shared with)
+    let hasAccess = false
+    
+    // Check ownership
+    if (project.ownerId === user.id) {
+      hasAccess = true
+    } else {
+      // Check if project is shared with this user
+      const sharedAccess = await prisma.projectShare.findFirst({
+        where: {
+          projectId: id,
+          userId: user.id
+        }
+      })
+      hasAccess = !!sharedAccess
+    }
+
+    if (!hasAccess) {
+      return NextResponse.json({ error: 'Project not found or you do not have access to it' }, { status: 404 })
+    }
+    
+    // Get related data separately to avoid relation issues
+    let whiteboards: any[] = []
+    let owner = null
+    
+    if (project) {
+      try {
+        whiteboards = await prisma.whiteboard.findMany({
+          where: { projectId: project.id },
+          orderBy: { updatedAt: 'desc' }
+        })
+      } catch (error) {
+        console.error('Error fetching whiteboards:', error)
+      }
+      
+      try {
+        owner = await prisma.user.findUnique({
+          where: { id: project.ownerId },
+          select: { id: true, username: true }
+        })
+      } catch (error) {
+        console.error('Error fetching owner:', error)
+      }
+    }
+
+    return NextResponse.json({
+      ...project,
+      owner,
+      whiteboards
+    })
   } catch (error) {
     if (error instanceof Error && error.message === 'Authentication required') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

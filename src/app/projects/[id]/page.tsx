@@ -21,9 +21,6 @@ interface Project {
   name: string
   description?: string
   owner: User
-  sharedWith: Array<{
-    user: User
-  }>
   whiteboards: Whiteboard[]
 }
 
@@ -80,7 +77,7 @@ export default function ProjectPage() {
       const data = await response.json()
       
       if (response.ok) {
-        setProject(data.project)
+        setProject(data)
         setError('')
       } else {
         if (response.status === 401) {
@@ -156,10 +153,7 @@ export default function ProjectPage() {
       const data = await response.json()
 
       if (response.ok) {
-        setProject(prev => prev ? {
-          ...prev,
-          sharedWith: [...prev.sharedWith, data.share]
-        } : null)
+        // Sharing functionality temporarily disabled
         setShareUsername('')
         setShowShareForm(false)
         setError('')
@@ -366,22 +360,7 @@ export default function ProjectPage() {
             </div>
           )}
 
-          {/* Shared Users */}
-          {project.sharedWith.length > 0 && (
-            <div className="bg-white p-6 rounded-lg shadow mb-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Shared With</h3>
-              <div className="flex flex-wrap gap-2">
-                {project.sharedWith.map((share) => (
-                  <span
-                    key={share.user.id}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
-                  >
-                    {share.user.username}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Shared Users - Temporarily disabled */}
 
           {/* Whiteboards Grid */}
           {project.whiteboards.length === 0 ? (

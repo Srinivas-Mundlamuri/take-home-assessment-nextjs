@@ -13,21 +13,32 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { id } = await params
 
     // Check if user has access to this project
-    const project = await prisma.project.findFirst({
-      where: {
-        id,
-        OR: [
-          { ownerId: user.id },
-          {
-            sharedWith: {
-              some: { userId: user.id }
-            }
-          }
-        ]
-      }
+    const project = await prisma.project.findUnique({
+      where: { id }
     })
 
     if (!project) {
+      return NextResponse.json(
+        { error: 'Project not found' },
+        { status: 404 }
+      )
+    }
+
+    // Check if user has access (owner or shared)
+    let hasAccess = false
+    if (project.ownerId === user.id) {
+      hasAccess = true
+    } else {
+      const sharedAccess = await prisma.projectShare.findFirst({
+        where: {
+          projectId: id,
+          userId: user.id
+        }
+      })
+      hasAccess = !!sharedAccess
+    }
+
+    if (!hasAccess) {
       return NextResponse.json(
         { error: 'Project not found or access denied' },
         { status: 404 }
@@ -68,36 +79,55 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Check if user has access to this project
-    const project = await prisma.project.findFirst({
-      where: {
-        id,
-        OR: [
-          { ownerId: user.id },
-          {
-            sharedWith: {
-              some: { userId: user.id }
-            }
-          }
-        ]
-      }
+    const project = await prisma.project.findUnique({
+      where: { id }
     })
 
     if (!project) {
+      return NextResponse.json(
+        { error: 'Project not found' },
+        { status: 404 }
+      )
+    }
+
+    // Check if user has access (owner or shared)
+    let hasAccess = false
+    if (project.ownerId === user.id) {
+      hasAccess = true
+    } else {
+      const sharedAccess = await prisma.projectShare.findFirst({
+        where: {
+          projectId: id,
+          userId: user.id
+        }
+      })
+      hasAccess = !!sharedAccess
+    }
+
+    if (!hasAccess) {
       return NextResponse.json(
         { error: 'Project not found or access denied' },
         { status: 404 }
       )
     }
 
-    const whiteboard = await prisma.whiteboard.create({
-      data: {
-        name: name.trim(),
-        projectId: id
-        // canvasData will be null by default
-      }
-    })
+    try {
+      const whiteboard = await prisma.whiteboard.create({
+        data: {
+          name: name.trim(),
+          projectId: id
+          // canvasData will be null by default
+        }
+      })
 
-    return NextResponse.json({ whiteboard }, { status: 201 })
+      return NextResponse.json({ whiteboard }, { status: 201 })
+    } catch (createError) {
+      console.error('Whiteboard create query failed:', createError)
+      return NextResponse.json(
+        { error: 'Failed to create whiteboard', details: createError instanceof Error ? createError.message : 'Unknown error' },
+        { status: 500 }
+      )
+    }
   } catch (error) {
     if (error instanceof Error && error.message === 'Authentication required') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -105,7 +135,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     
     console.error('Create whiteboard error:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     )
   }

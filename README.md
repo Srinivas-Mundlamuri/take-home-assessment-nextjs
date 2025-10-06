@@ -2,6 +2,15 @@
 
 A collaborative project management application with integrated whiteboarding functionality built with Next.js and PostgreSQL.
 
+## 🌐 Live Demo
+
+**[🚀 View Live Application](https://take-home-assessment-nextjs-mdvhtxy6f.vercel.app)**
+
+Try the demo with these test credentials:
+
+- Username: `srinivas`
+- Username: `srinivas12`
+
 ## 🚀 Project Overview
 
 This application allows users to:

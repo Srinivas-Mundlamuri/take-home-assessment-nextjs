@@ -12,28 +12,38 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const user = await requireAuth()
     const { id } = await params
 
-    const whiteboard = await prisma.whiteboard.findFirst({
-      where: {
-        id,
-        project: {
-          OR: [
-            { ownerId: user.id },
-            {
-              sharedWith: {
-                some: { userId: user.id }
-              }
-            }
-          ]
-        }
-      },
+    // Get whiteboard first
+    const whiteboard = await prisma.whiteboard.findUnique({
+      where: { id },
       include: {
         project: {
-          select: { id: true, name: true }
+          select: { id: true, name: true, ownerId: true }
         }
       }
     })
 
     if (!whiteboard) {
+      return NextResponse.json(
+        { error: 'Whiteboard not found' },
+        { status: 404 }
+      )
+    }
+
+    // Check if user has access to the project (owner or shared)
+    let hasAccess = false
+    if (whiteboard.project.ownerId === user.id) {
+      hasAccess = true
+    } else {
+      const sharedAccess = await prisma.projectShare.findFirst({
+        where: {
+          projectId: whiteboard.project.id,
+          userId: user.id
+        }
+      })
+      hasAccess = !!sharedAccess
+    }
+
+    if (!hasAccess) {
       return NextResponse.json(
         { error: 'Whiteboard not found or access denied' },
         { status: 404 }
@@ -62,23 +72,37 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { canvasData } = await request.json()
 
     // Check if user has access to this whiteboard
-    const whiteboard = await prisma.whiteboard.findFirst({
-      where: {
-        id,
+    const whiteboard = await prisma.whiteboard.findUnique({
+      where: { id },
+      include: {
         project: {
-          OR: [
-            { ownerId: user.id },
-            {
-              sharedWith: {
-                some: { userId: user.id }
-              }
-            }
-          ]
+          select: { id: true, ownerId: true }
         }
       }
     })
 
     if (!whiteboard) {
+      return NextResponse.json(
+        { error: 'Whiteboard not found' },
+        { status: 404 }
+      )
+    }
+
+    // Check access (owner or shared)
+    let hasAccess = false
+    if (whiteboard.project.ownerId === user.id) {
+      hasAccess = true
+    } else {
+      const sharedAccess = await prisma.projectShare.findFirst({
+        where: {
+          projectId: whiteboard.project.id,
+          userId: user.id
+        }
+      })
+      hasAccess = !!sharedAccess
+    }
+
+    if (!hasAccess) {
       return NextResponse.json(
         { error: 'Whiteboard not found or access denied' },
         { status: 404 }

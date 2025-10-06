@@ -29,7 +29,7 @@ export async function getSession(): Promise<SessionUser | null> {
     if (!token) return null
     
     return await verifyToken(token)
-  } catch {
+  } catch (error) {
     return null
   }
 }
