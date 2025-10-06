@@ -85,8 +85,8 @@ The application uses the following database tables:
 
 ### 1. Clone the Repository
 ```bash
-git clone <your-repo-url>
-cd take-home-assessment
+git clone https://github.com/Srinivas-Mundlamuri/take-home-assessment-nextjs.git
+cd take-home-assessment-nextjs
 ```
 
 ### 2. Install Dependencies
